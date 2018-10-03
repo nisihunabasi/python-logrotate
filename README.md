@@ -9,3 +9,4 @@ Windows環境で動作することを前提にしています。Linux/MacOS環�
 ## Usage
 
 まだつかえません＼(^o^)／
+
