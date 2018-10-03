@@ -19,7 +19,7 @@ def main():
 
     # 引数未指定で動作。
     fileName = "test.log"
-    functions.lotateByTimeInterval("daily", fileName, 3, False, False, False)
+    functions.rotateByTimeInterval("daily", fileName, 3, False, False, False)
     
     #TODO: 2個以上の管理場所に対応
     

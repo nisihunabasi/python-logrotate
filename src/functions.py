@@ -7,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 # TODO: ファイルの圧縮する/しない。compress
 def advanceGeneration(fileName:str, generationLimit:int):
     """
-    ログの世代を一つ進める。
+    ログの世代を一つ進める。主にsize用。
     1が最新世代で、そこからgenerationLimit分のログを保持する。最新ログの保存場所を確保するため、ログの数字をそれぞれ一つづつ進める。
     また、最古世代のファイルは削除する。
         :param fileName:str: 
@@ -53,17 +53,38 @@ def trashOldestGeneration(fileName:str, mode:str, generationLimit:int):
 
     return None
 
-def lotateByTimeInterval(mode:str, fileName:str, generation:int, ifEmpty:bool, missingOk:bool, isCompress:bool):
+def rotateByTimeInterval(mode:str, fileName:str, generation:int, ifEmpty:bool, missingOk:bool, isCompress:bool):
     """
     日毎にローテーションを行う。
         :param mode:str: ローテーションモード。dailyとmonthlyをサポートしている。不正な文字列を検知したら強制的にdailyにする。
         :param fileName:str: 
         :param generation:int: 保存可能なファイルの数。世代として表す。
         :param ifEmpty:bool: 
-        :param missingOk:bool: 
+        :param missingOk:bool: ファイルが存在しないときにエラーを出さないようにするか。Trueでエラーを出さず、ファイルを生成する。
         :param isCompress:bool: 
         :return: void
     """
+    # モードがmonthlyではなかったら、強制的にdailyにする。
+    if mode != "monthly":
+        mode = "daily"
+
+    # missingOk=Trueの処理。FileNotFoundErrorが出たら、フラグ確認してエラーをスローするか判断する。
+    try:
+        os.path.getsize(fileName)
+    except FileNotFoundError as e:
+        if missingOk:
+            newFile = open(fileName, "w")
+            newFile.close()
+        else:
+            raise e
+    
+    # ifEmpty=Falseのときの処理。最新ログがそもそも空ログだったらローテーションしない。
+    if not ifEmpty:
+        if os.path.getsize(fileName) == 0:
+            return   
+
+    #ローテーションする。世代制限を超えたファイルが存在しているなら削除。
+    trashOldestGeneration(fileName, mode, generation)
 
     #リネーム後に元ファイル名で新規作成。の前にリネーム先の上書き確認する。
     if mode == "monthly":
@@ -88,14 +109,21 @@ def lotateByTimeInterval(mode:str, fileName:str, generation:int, ifEmpty:bool, m
 
     return
 
-def rotateBySizeInterval(fileName:str, generation:int, limit:int, isCompress:bool):
+def rotateBySizeInterval(fileName:str, generation:int, limit:int, missingOk:bool, isCompress:bool):
     """
     ログサイズ基準でローテーションする。
         :param fileName:str: ローテーション対象のファイル名。フルパス。
         :param generation:int: 
-        :param limit:int: ログサイズのリミット。byte単位で記述する。この値をログサイズが超えたらローテーションする。
+        :param limit:int: ログサイズのリミット。byte単位で記述する。この値をログサイズが超えたらローテーションする。ただし、0だったらローテーションしない。
+        :param missingOk:bool:
         :param isCompress:bool: 
     """
+    # 上限値が0だったらローテーションしない。
+    if limit == 0:
+        return
+
+    # missingOk=Falseなら、存在確認を行う。
+
     try:
         fileSize = os.path.getsize(fileName)
         if fileSize > limit:
@@ -103,6 +131,10 @@ def rotateBySizeInterval(fileName:str, generation:int, limit:int, isCompress:boo
             advanceGeneration(fileName, generation)
             shutil.move(fileName, fileName + "-0")
             return
-    except OSError:
-        #ファイルがなかったら何もしない。
+    except FileNotFoundError as e:
+        if missingOk:
+            return
+        else:
+            raise e
+    except Exception:
         return

@@ -1,6 +1,6 @@
 C:\Users\excha\OneDrive\repository\automation-py\yamato_atobarai_tashabin.py.log:
   rotate: 5       # 何世代分のファイルを残すか。currentは省く
   interval: daily # ログローテートさせる期間。daily, monthly, size [byteNum] の中から選ぶ。
-  ifempty: true   # trueなら、ログファイルが空でもローテーションする。falseならローテーションしない。
+  ifempty: true   # trueなら、ログファイルが空でもローテーションする。falseならローテーションしない。interval: sizeでは無効。
   missingok: true # trueなら、ログファイルが存在しなくてもエラーを出さない。
   compress: false # ローテートしたファイルを圧縮するか。trueならzipで圧縮する。
